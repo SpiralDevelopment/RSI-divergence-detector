@@ -158,3 +158,9 @@ def floor_12_hours(timestamp):
         return ((mid_of_day - timedelta(hours=12)) - epoch).total_seconds()
     else:
         return (mid_of_day - epoch).total_seconds()
+
+
+# Returns most recent open time
+def get_most_recent_ot(tf_in_minutes):
+    recent_ot_tim = floor_epoch_n_minutes(int(time.time()), tf_in_minutes) - tf_in_minutes * 60
+    return from_utc_timestamp_to_utc_dtm(recent_ot_tim)

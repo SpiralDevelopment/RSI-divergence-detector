@@ -1,6 +1,5 @@
 import pandas as pd
-import talib
-from calculus_helper import *
+from helpers.calculus_helper import *
 import logging
 from datetime import datetime
 from scipy import stats
@@ -8,6 +7,7 @@ from scipy import stats
 logger = logging.getLogger(__name__)
 RSI_COLUMN = 'rsi'
 BASE_COLUMN = 'C'
+TIME_COLUMN = 'T'
 ANGLE_LIMIT = 45.0  # Limit for angle of divergence lines
 
 
@@ -16,25 +16,23 @@ def calc_percentage_increase(original, new):
     return increase * 100
 
 
-def get_divergences(df, tf):
+# cur_candle_idx - index of the candle to which we compare candles in the past to find divergences
+def get_rsi_divergences(df, tf, cur_candle_idx=-1):
     divergences = []
 
-    df[RSI_COLUMN] = talib.RSI(df[BASE_COLUMN] * 100000, timeperiod=14)
-    df.dropna(inplace=True)
-
-    # 'cur_candle' is the most recent candle, we find divergences comparing this candle to other candles from the past
-    cur_candle = df.iloc[-1]
+    cur_candle = df.iloc[cur_candle_idx]
     cur_rsi_change = calc_percentage_increase(df.iloc[-2][RSI_COLUMN],
                                               cur_candle[RSI_COLUMN])
 
     # 'cur_base_value' is the close price here
-    cur_base_value_time = cur_candle['T']
+    cur_base_value_time = cur_candle[TIME_COLUMN]
     cur_base_value = cur_candle[BASE_COLUMN]
     cur_base_value_rsi = cur_candle[RSI_COLUMN]
 
     # 'candles_to_compare' - Candles in the past to which we compare 'cur_candle' and look for divergences
-    # Here we skip the most recent 21 candles and get the other 55 candles before that
-    candles_to_compare = df[df['T'] < cur_base_value_time - pd.Timedelta(minutes=tf.value[0] * 21)]
+    # We skip the most recent 21 candles because divergence signals formed among 21 (or less) candles are not that strong
+    # We get the other 55 candles before that
+    candles_to_compare = df[df[TIME_COLUMN] < cur_base_value_time - pd.Timedelta(minutes=tf.value[0] * 21)]
     candles_to_compare = candles_to_compare.tail(55)
     candles_to_compare_len = candles_to_compare.shape[0]
 
@@ -53,11 +51,11 @@ def get_divergences(df, tf):
             try:
                 past_base_value = past_candle[BASE_COLUMN]
                 past_base_value_rsi = past_candle[RSI_COLUMN]
+                past_base_value_time = past_candle[TIME_COLUMN]
 
                 if past_base_value_rsi > 32:
                     continue
 
-                past_base_value_time = past_candle['T']
                 is_bullish = False
 
                 base_value_change = calc_percentage_increase(past_base_value,
@@ -65,8 +63,8 @@ def get_divergences(df, tf):
                 rsi_change = calc_percentage_increase(past_base_value_rsi,
                                                       cur_base_value_rsi)
 
-                df_in_period = df[(past_base_value_time <= df['T']) & (df['T'] <= cur_base_value_time)]
-                seconds = (df_in_period['T'] - datetime(1970, 1, 1)).dt.total_seconds()
+                df_in_period = df[(past_base_value_time <= df[TIME_COLUMN]) & (df[TIME_COLUMN] <= cur_base_value_time)]
+                seconds = (df_in_period[TIME_COLUMN] - datetime(1970, 1, 1)).dt.total_seconds()
                 slope, intercept, r_value, p_value, std_err = stats.linregress(seconds,
                                                                                df_in_period[
                                                                                    BASE_COLUMN])
@@ -100,7 +98,7 @@ def get_divergences(df, tf):
                 logging.exception(str(e))
 
         for index, div in bullish_divs.iterrows():
-            divergences.append({'start_dtm': div['T'],
+            divergences.append({'start_dtm': div[TIME_COLUMN],
                                 'end_dtm': cur_base_value_time,
                                 'rsi_start': div[RSI_COLUMN],
                                 'rsi_end': cur_base_value_rsi,
@@ -119,15 +117,15 @@ def get_divergences(df, tf):
                     continue
 
                 past_base_value = past_candle[BASE_COLUMN]
-                past_base_value_time = past_candle['T']
+                past_base_value_time = past_candle[TIME_COLUMN]
                 is_bearish = False
 
                 base_value_change = calc_percentage_increase(past_base_value,
                                                              cur_base_value)
                 rsi_change = calc_percentage_increase(past_base_value_rsi, cur_base_value_rsi)
 
-                df_in_period = df[(past_base_value_time <= df['T']) & (df['T'] <= cur_base_value_time)]
-                seconds = (df_in_period['T'] - datetime(1970, 1, 1)).dt.total_seconds()
+                df_in_period = df[(past_base_value_time <= df[TIME_COLUMN]) & (df[TIME_COLUMN] <= cur_base_value_time)]
+                seconds = (df_in_period[TIME_COLUMN] - datetime(1970, 1, 1)).dt.total_seconds()
                 slope, intercept, r_value, p_value, std_err = stats.linregress(seconds,
                                                                                df_in_period[
                                                                                    BASE_COLUMN])
@@ -161,7 +159,7 @@ def get_divergences(df, tf):
                 logging.exception(str(e))
 
         for index, div in bearish_divs.iterrows():
-            divergences.append({'start_dtm': div['T'],
+            divergences.append({'start_dtm': div[TIME_COLUMN],
                                 'end_dtm': cur_base_value_time,
                                 'rsi_start': div[RSI_COLUMN],
                                 'rsi_end': cur_base_value_rsi,
@@ -186,7 +184,7 @@ def get_divergences(df, tf):
                     if not (50 < past_base_value_rsi < 65):
                         continue
 
-                    past_base_value_time = past_candle['T']
+                    past_base_value_time = past_candle[TIME_COLUMN]
                     is_bearish = False
 
                     base_value_change = calc_percentage_increase(past_base_value,
@@ -194,8 +192,9 @@ def get_divergences(df, tf):
                     rsi_change = calc_percentage_increase(past_base_value_rsi,
                                                           cur_base_value_rsi)
 
-                    df_in_period = df[(past_base_value_time <= df['T']) & (df['T'] <= cur_base_value_time)]
-                    seconds = (df_in_period['T'] - datetime(1970, 1, 1)).dt.total_seconds()
+                    df_in_period = df[
+                        (past_base_value_time <= df[TIME_COLUMN]) & (df[TIME_COLUMN] <= cur_base_value_time)]
+                    seconds = (df_in_period[TIME_COLUMN] - datetime(1970, 1, 1)).dt.total_seconds()
                     slope, intercept, r_value, p_value, std_err = stats.linregress(seconds,
                                                                                    df_in_period[BASE_COLUMN])
 
@@ -232,7 +231,7 @@ def get_divergences(df, tf):
                 continue
 
         for index, div in h_bearish_divs.iterrows():
-            divergences.append({'start_dtm': div['T'],
+            divergences.append({'start_dtm': div[TIME_COLUMN],
                                 'end_dtm': cur_base_value_time,
                                 'rsi_start': div[RSI_COLUMN],
                                 'rsi_end': cur_base_value_rsi,
@@ -257,16 +256,17 @@ def get_divergences(df, tf):
                     if not (40 < past_base_value_rsi < 55):
                         continue
 
-                    past_base_value_time = past_candle['T']
+                    past_base_value_time = past_candle[TIME_COLUMN]
                     is_bullish = False
 
                     base_value_change = calc_percentage_increase(past_base_value,
                                                                  cur_base_value)
                     rsi_change = calc_percentage_increase(past_base_value_rsi,
-                                                                cur_base_value_rsi)
+                                                          cur_base_value_rsi)
 
-                    df_in_period = df[(past_base_value_time <= df['T']) & (df['T'] <= cur_base_value_time)]
-                    seconds = (df_in_period['T'] - datetime(1970, 1, 1)).dt.total_seconds()
+                    df_in_period = df[
+                        (past_base_value_time <= df[TIME_COLUMN]) & (df[TIME_COLUMN] <= cur_base_value_time)]
+                    seconds = (df_in_period[TIME_COLUMN] - datetime(1970, 1, 1)).dt.total_seconds()
                     slope, intercept, r_value, p_value, std_err = stats.linregress(seconds,
                                                                                    df_in_period[BASE_COLUMN])
 
@@ -274,7 +274,7 @@ def get_divergences(df, tf):
                                                                                         df_in_period[RSI_COLUMN])
 
                     if rsi_change <= -6 and 0 < base_value_change and slope > 0 > slope2 and pow(r_value,
-                                                                                                       2) > 0.3:
+                                                                                                 2) > 0.3:
                         is_bullish = True
 
                     if is_bullish \
@@ -303,7 +303,7 @@ def get_divergences(df, tf):
                 continue
 
         for index, div in h_bullish_divs.iterrows():
-            divergences.append({'start_dtm': div['T'],
+            divergences.append({'start_dtm': div[TIME_COLUMN],
                                 'end_dtm': cur_base_value_time,
                                 'rsi_start': div[RSI_COLUMN],
                                 'rsi_end': cur_base_value_rsi,
@@ -312,3 +312,12 @@ def get_divergences(df, tf):
                                 'type': 'h_bullish'})
 
     return divergences
+
+
+def get_all_rsi_divergences(df, tf):
+    all_divergences = []
+
+    for idx in range(df.shape[0]):
+        all_divergences += get_rsi_divergences(df, tf, idx)
+
+    return all_divergences

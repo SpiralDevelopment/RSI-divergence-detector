@@ -26,8 +26,8 @@ class OneHourCandleDB(object):
         try:
             connection = pymysql.connect(host='127.0.0.1',
                                          user='root',
-                                         password='DB_PASSWORD',
-                                         db='DB_NAME',
+                                         password='12345',
+                                         db='hourly_ohlc',
                                          charset='utf8mb4',
                                          cursorclass=pymysql.cursors.DictCursor,
                                          autocommit=True)
