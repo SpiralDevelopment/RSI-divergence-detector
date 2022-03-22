@@ -5,7 +5,7 @@ from helpers.binance_helper import BinanceHelper
 from rsi_divergence_finder import *
 from telegram_poster import TelegramPoster
 from timeframe import TimeFrame
-from one_hour_candle_db import OneHourCandleDB
+from db.one_hour_candle_db import OneHourCandleDB
 import logging
 import talib
 

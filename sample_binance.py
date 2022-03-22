@@ -1,7 +1,7 @@
 import plotly.graph_objs as go
 from plotly.offline import plot
 import os
-from one_hour_candle_db import OneHourCandleDB
+import requests
 from rsi_divergence_finder import *
 from timeframe import TimeFrame
 import talib
@@ -73,15 +73,17 @@ def plot_rsi_divergence(candles_df, divergences, pair, file_name):
 
 
 if __name__ == '__main__':
-    db_manager = OneHourCandleDB()
-
-    pair = "BTCUSD"
+    pair = "BTCUSDT"
     time_frame = TimeFrame.ONE_DAY
 
-    candles_df = db_manager.get_all_candles_between('Binance_{}'.format(pair),
-                                                    datetime(2018, 1, 1),
-                                                    datetime(2022, 3, 22),
-                                                    aggregate=int(time_frame.value[0] / 60.0))
+    candles = requests.get(
+        'https://api.binance.com/api/v1/klines?symbol={}&interval={}'.format(pair, time_frame.value[1]))
+
+    candles_df = pd.DataFrame(candles.json(),
+                              columns=[TIME_COLUMN, 'O', 'H', 'L', BASE_COLUMN, 'V', 'CT', 'QV', 'N', 'TB', 'TQ', 'I'])
+
+    candles_df[TIME_COLUMN] = pd.to_datetime(candles_df[TIME_COLUMN], unit='ms')
+    candles_df[BASE_COLUMN] = pd.to_numeric(candles_df[BASE_COLUMN])
 
     candles_df[RSI_COLUMN] = talib.RSI(candles_df[BASE_COLUMN] * 100000, timeperiod=14)
     candles_df.dropna(inplace=True)
