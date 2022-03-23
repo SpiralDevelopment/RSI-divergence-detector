@@ -27,7 +27,7 @@ $ pip3 install -r requirements.txt
 
 ## Result
 
-Here is the result of detected RSI divergences for BTCUSDT symbol during 22.11.2020-22.03.2022 period. 
+Here is the result of detected RSI divergences for BTCUSDT pair during 22.11.2020 - 22.03.2022 period in daily timeframe 
 
 <p align="center"><img src="./btcusdt_divergences.PNG"></p>
 
