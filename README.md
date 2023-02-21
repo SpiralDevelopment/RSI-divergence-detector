@@ -1,14 +1,12 @@
 # RSI-divergence-detector
 > Relative Strength Index Divergence Detector
 
-**RSI divergence detector finds regular and hidden bullish and bearish divergences for given data**
-
-The underlying algorithm of this project has been used to detect and post RSI divergence signals for some top coins on Binance [here](https://twitter.com/rsindicator) on Twitter and [here](https://t.me/relative_strength_index) on Telegram
+**RSI divergence detector finds regular and hidden bullish and bearish divergences**
 
 ## Usage
 
 This project uses [TaLib](https://github.com/mrjbq7/ta-lib) library for some calculations, so [install](https://github.com/mrjbq7/ta-lib#installation) the TaLib library first.
-Then clone the project and install other requirements.
+Then, clone the project and install other requirements.
 
 ```bash
 $ git clone git@github.com:SpiralDevelopment/crypto-hft-data.git
@@ -21,8 +19,7 @@ $ pip3 install -r requirements.txt
 
 ### Samples
 
-- sample_tg_poster.py - Gets the ohlc data from local MySql database and checks if the last closed candle forms any form of RSI divergence with candles from the past. 
-  This script is used [here](https://t.me/relative_strength_index) in Telegram channel to detect and post RSI divergence signals
+- sample_tg_poster.py - Gets the ohlc data from local database and checks if the last candle has RSI divergence
 - sample_binance.py - Gets the data from Binance API and plots ALL detected RSI divergences during that period
 
 ## Result
