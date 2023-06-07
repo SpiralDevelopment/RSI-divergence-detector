@@ -7,7 +7,7 @@ from telegram_poster import TelegramPoster
 from timeframe import TimeFrame
 from db.one_hour_candle_db import OneHourCandleDB
 import logging
-import talib
+import ta
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
@@ -98,7 +98,9 @@ def find_divergences(time_frames):
                     continue
 
                 # Here I am multiplying close price to 10^5, otherwise TA-Lib is giving incorrect rsi
-                candles_df[RSI_COLUMN] = talib.RSI(candles_df[BASE_COLUMN] * 100000, timeperiod=14)
+                #candles_df[RSI_COLUMN] = talib.RSI(candles_df[BASE_COLUMN] * 100000, timeperiod=14)
+                candles_df[RSI_COLUMN] = ta.momentum.RSIIndicator(candles_df[BASE_COLUMN], window=14).rsi()
+                #ta.momentum.RSIIndicator(df['close'], window=periodos).rsi()
                 candles_df.dropna(inplace=True)
 
                 divergences = get_rsi_divergences(candles_df,
