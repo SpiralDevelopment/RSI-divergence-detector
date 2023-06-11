@@ -4,7 +4,7 @@ import os
 import requests
 from rsi_divergence_finder import *
 from timeframe import TimeFrame
-import talib
+import ta
 
 real_path = os.path.dirname(os.path.realpath(__file__))
 os.chdir(real_path)
@@ -85,7 +85,8 @@ if __name__ == '__main__':
     candles_df[TIME_COLUMN] = pd.to_datetime(candles_df[TIME_COLUMN], unit='ms')
     candles_df[BASE_COLUMN] = pd.to_numeric(candles_df[BASE_COLUMN])
 
-    candles_df[RSI_COLUMN] = talib.RSI(candles_df[BASE_COLUMN] * 100000, timeperiod=14)
+    #candles_df[RSI_COLUMN] = talib.RSI(candles_df[BASE_COLUMN] * 100000, timeperiod=14)
+    candles_df[RSI_COLUMN] = ta.momentum.RSIIndicator(candles_df[BASE_COLUMN], window=14).rsi()    
     candles_df.dropna(inplace=True)
 
     div_df = get_all_rsi_divergences(candles_df, time_frame)
